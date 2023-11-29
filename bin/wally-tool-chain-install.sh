@@ -28,15 +28,15 @@
 ################################################################################################
 
 # Use /opt/riscv for installation - may require running script with sudo
-export RISCV="${1:-/opt/riscv}"
-export PATH=$PATH:$RISCV/bin:/usr/bin
+#export RISCV="${1:-/opt/riscv}"
+#export PATH=$PATH:$RISCV/bin:/usr/bin
 
 set -e # break on error
 
 # Modify accordingly for your machine
 # Increasing NUM_THREADS will speed up parallel compilation of the tools
-#NUM_THREADS=2 # for low memory machines > 16GiB
-NUM_THREADS=8  # for >= 32GiB
+NUM_THREADS=1 # for low memory machines > 16GiB
+#NUM_THREADS=8  # for >= 32GiB
 #NUM_THREADS=16  # for >= 64GiB
 
 sudo mkdir -p $RISCV
@@ -66,11 +66,11 @@ fi
 # https://github.com/riscv-collab/riscv-gnu-toolchain/issues/1188
 
 cd $RISCV
-git clone https://github.com/riscv/riscv-gnu-toolchain
+#git clone https://github.com/riscv/riscv-gnu-toolchain
 cd riscv-gnu-toolchain
 # Temporarily use the following commands until gcc-13 is part of riscv-gnu-toolchain (issue #1249)
-git clone https://github.com/gcc-mirror/gcc -b releases/gcc-13 gcc-13
-./configure --prefix=/opt/riscv --with-multilib-generator="rv32e-ilp32e--;rv32i-ilp32--;rv32im-ilp32--;rv32iac-ilp32--;rv32imac-ilp32--;rv32imafc-ilp32f--;rv32imafdc-ilp32d--;rv64i-lp64--;rv64ic-lp64--;rv64iac-lp64--;rv64imac-lp64--;rv64imafdc-lp64d--;rv64im-lp64--;" --with-gcc-src=`pwd`/gcc-13
+# git clone https://github.com/gcc-mirror/gcc -b releases/gcc-13 gcc-13
+./configure --prefix=$RISCV --with-multilib-generator="rv32e-ilp32e--;rv32i-ilp32--;rv32im-ilp32--;rv32iac-ilp32--;rv32imac-ilp32--;rv32imafc-ilp32f--;rv32imafdc-ilp32d--;rv64i-lp64--;rv64ic-lp64--;rv64iac-lp64--;rv64imac-lp64--;rv64imafdc-lp64d--;rv64im-lp64--;"
 #./configure --prefix=${RISCV} --with-multilib-generator="rv32e-ilp32e--;rv32i-ilp32--;rv32im-ilp32--;rv32iac-ilp32--;rv32imac-ilp32--;rv32imafc-ilp32f--;rv32imafdc-ilp32d--;rv64i-lp64--;rv64ic-lp64--;rv64iac-lp64--;rv64imac-lp64--;rv64imafdc-lp64d--;rv64im-lp64--;"
 make -j ${NUM_THREADS}
 

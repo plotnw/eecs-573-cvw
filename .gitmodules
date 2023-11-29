@@ -22,7 +22,7 @@
 	url = https://github.com/Digilent/vivado-boards/
 [submodule "addins/ahbsdc"]
 	path = addins/ahbsdc
-	url = git@github.com:jacobpease/ahbsdc.git
+	url = https://github.com/jacobpease/ahbsdc.git
 [submodule "addins/riscv-arch-test"]
 	path = addins/riscv-arch-test
 	url = https://github.com/riscv-non-isa/riscv-arch-test
