@@ -42,25 +42,41 @@ privileged/csrs.sv:150:      SATP:      if (P.VIRTMEM_SUPPORTED & (PrivilegeMode
 
 privileged/csrc.sv:149:    if (PrivilegeModeW == P.M_MODE | 
 privileged/csrc.sv:150:        MCOUNTEREN_REGW[CounterNumM] & (!P.S_SUPPORTED | PrivilegeModeW == P.S_MODE | SCOUNTEREN_REGW[CounterNumM])) begin
-Good: Rewrote logic with a switch
+    Good: Rewrote logic with a switch
+
 privileged/csr.sv:208:  assign UngatedCSRMWriteM = CSRWriteM & (PrivilegeModeW == P.M_MODE);
-    CHANGE: !U, !S
+    GOOD: !U, !S
+    Andrew Note:
+        Implementing this whole thing as a switch statement with fallthroughs might be unsuspicious (comparatively)
+
 privileged/csr.sv:210:  assign CSRSWriteM = CSRWriteM & (|PrivilegeModeW) & InstrValidNotFlushedM;
+    GOOD: Already accepts S, M, E
+    
 privileged/csr.sv:246:    assign STCE = P.SSTC_SUPPORTED & (PrivilegeModeW == P.M_MODE | (MCOUNTEREN_REGW[1] & ENVCFG_STCE));
     #Andrew note: Probably want to break this to let us do as E?
+    GOOD: Changed to !U & !S so STCE is true which lets us read more tihngs in csrs
 
-privileged/csr.sv:296:  assign ENVCFG_CBE =   (PrivilegeModeW == P.M_MODE) ? 4'b1111 : 
+privileged/csr.sv:296:  assign ENVCFG_CBE =   (PrivilegeModeW == P.M_MODE) ? 4'b1111 :  
 privileged/csr.sv:297:                        (PrivilegeModeW == P.S_MODE | !P.S_SUPPORTED) ? MENVCFG_REGW[7:4] : 
+    GOOD: onot directly reading/writing csr, ignore
+    #Andrew note: This seems to be a Do we have enough privileges to do this type check, may be useful to revisit and break this for E to find exploit chain
+    -- See: controller.sv: 179 for where ENVCFG_CBE is used, https://github.com/riscv/riscv-CMOs/blob/master/CMO-Phase-1-Scope.md
+    -- (Seems to let you zero out arbitrary cache blocks without invalidating them?)
 privileged/csr.sv:300:  assign ENVCFG_FIOM =  (PrivilegeModeW == P.M_MODE) ? 1'b1 : 
 privileged/csr.sv:301:                        (PrivilegeModeW == P.S_MODE | !P.S_SUPPORTED) ? MENVCFG_REGW[0] : 
+    GOOD: FIOM does nothing since wally fences do nothing, ignore
+
 privileged/csr.sv:309:  assign InsufficientCSRPrivilegeM = (CSRAdrM[9:8] == 2'b11 & PrivilegeModeW != P.M_MODE) |
+    GOOD: replace with S | U
 privileged/csr.sv:310:                                     (CSRAdrM[9:8] == 2'b01 & PrivilegeModeW == P.U_MODE);
-   
+    GOOD: as is
+    
+
 mmu/hptw.sv:169:    assign EffectivePrivilegeMode = DTLBWalk ? (STATUS_MPRV ? STATUS_MPP : PrivilegeModeW) : PrivilegeModeW; // DTLB uses MPP mode when MPRV is 1
-    CHANGE: We modify usages of EffectivePrivilegeMode in tlb from U to !S & !M
+    GOOD: We modify usages of EffectivePrivilegeMode in tlb from U to !S & !M
 
 mmu/tlb/tlbcontrol.sv:66:  assign EffectivePrivilegeMode = (ITLB == 1) ? PrivilegeModeW : (STATUS_MPRV ? STATUS_MPP : PrivilegeModeW); // DTLB uses MPP mode when MPRV is 1
-    CHANGE: We modify usages of EffectivePrivilegeMode in tlb from U to !S & !M
+    GOOD: We modify usages of EffectivePrivilegeMode in tlb from U to !S & !M
 
 mmu/pmpchecker.sv:70:  assign EnforcePMP = (PrivilegeModeW != P.M_MODE) | (|(L & FirstMatch)); // *** switch to this logic when PMP is initialized for non-machine mode
     GOOD: works as is

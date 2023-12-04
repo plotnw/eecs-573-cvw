@@ -205,7 +205,7 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   assign NextEPCM = P.COMPRESSED_SUPPORTED ? {UnalignedNextEPCM[P.XLEN-1:1], 1'b0} : {UnalignedNextEPCM[P.XLEN-1:2], 2'b00}; // 3.1.15 alignment
   assign NextCauseM = TrapM ? {InterruptM, CauseM}: {CSRWriteValM[P.XLEN-1], CSRWriteValM[3:0]};
   assign NextMtvalM = TrapM ? NextFaultMtvalM : CSRWriteValM;
-  assign UngatedCSRMWriteM = CSRWriteM & (PrivilegeModeW == P.M_MODE);
+  assign UngatedCSRMWriteM = CSRWriteM & ((PrivilegeModeW != P.S_MODE) && (PrivilegeModeW != P.U_MODE));
   assign CSRMWriteM = UngatedCSRMWriteM & InstrValidNotFlushedM;
   assign CSRSWriteM = CSRWriteM & (|PrivilegeModeW) & InstrValidNotFlushedM;
   assign CSRUWriteM = CSRWriteM  & InstrValidNotFlushedM;
@@ -243,7 +243,7 @@ module csr import cvw::*;  #(parameter cvw_t P) (
 
   if (P.S_SUPPORTED) begin:csrs
     logic STCE; 
-    assign STCE = P.SSTC_SUPPORTED & (PrivilegeModeW == P.M_MODE | (MCOUNTEREN_REGW[1] & ENVCFG_STCE));
+    assign STCE = P.SSTC_SUPPORTED & ((PrivilegeModeW != P.S_MODE) && (PrivilegeModeW != P.U_MODE) | (MCOUNTEREN_REGW[1] & ENVCFG_STCE));
     csrs #(P) csrs(.clk, .reset,
       .CSRSWriteM, .STrapM, .CSRAdrM,
       .NextEPCM, .NextCauseM, .NextMtvalM, .SSTATUS_REGW, 
@@ -306,7 +306,7 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   flopenrc #(P.XLEN) CSRValWReg(clk, reset, FlushW, ~StallW, CSRReadValM, CSRReadValW);
 
   // merge illegal accesses: illegal if none of the CSR addresses is legal or privilege is insufficient
-  assign InsufficientCSRPrivilegeM = (CSRAdrM[9:8] == 2'b11 & PrivilegeModeW != P.M_MODE) |
+  assign InsufficientCSRPrivilegeM = (CSRAdrM[9:8] == 2'b11 & (PrivilegeModeW == P.S_MODE || PrivilegeModeW == P.U_MODE)) |
                                      (CSRAdrM[9:8] == 2'b01 & PrivilegeModeW == P.U_MODE);
   assign IllegalCSRAccessM = ((IllegalCSRCAccessM & IllegalCSRMAccessM & 
     IllegalCSRSAccessM & IllegalCSRUAccessM |
