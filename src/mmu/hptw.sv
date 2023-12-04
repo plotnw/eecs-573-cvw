@@ -167,7 +167,7 @@ module hptw import cvw::*;  #(parameter cvw_t P) (
     assign ReadAccess = MemRWM[1];
 
     assign EffectivePrivilegeMode = DTLBWalk ? (STATUS_MPRV ? STATUS_MPP : PrivilegeModeW) : PrivilegeModeW; // DTLB uses MPP mode when MPRV is 1
-    assign ImproperPrivilege = ((EffectivePrivilegeMode == P.U_MODE) & ~PTE_U) |
+    assign ImproperPrivilege = (((EffectivePrivilegeMode != P.S_MODE) && (EffectivePrivilegeMode != P.M_MODE)) & ~PTE_U) |
                                ((EffectivePrivilegeMode == P.S_MODE) & PTE_U & (~STATUS_SUM & DTLBWalk));
 
     // Check for page faults
