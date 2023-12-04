@@ -55,7 +55,8 @@ privileged/csr.sv:310:                                     (CSRAdrM[9:8] == 2'b0
    
 mmu/hptw.sv:169:    assign EffectivePrivilegeMode = DTLBWalk ? (STATUS_MPRV ? STATUS_MPP : PrivilegeModeW) : PrivilegeModeW; // DTLB uses MPP mode when MPRV is 1
 mmu/tlb/tlbcontrol.sv:66:  assign EffectivePrivilegeMode = (ITLB == 1) ? PrivilegeModeW : (STATUS_MPRV ? STATUS_MPP : PrivilegeModeW); // DTLB uses MPP mode when MPRV is 1
-
+    GOOD: We modify usages of EffectivePrivilegeMode in tlb from U to !S & !M
+    
 mmu/pmpchecker.sv:70:  assign EnforcePMP = (PrivilegeModeW != P.M_MODE) | (|(L & FirstMatch)); // *** switch to this logic when PMP is initialized for non-machine mode
 
 privileged/privdec.sv:67:                      (PrivilegeModeW == P.M_MODE | PrivilegeModeW == P.S_MODE & ~STATUS_TSR); 
@@ -64,6 +65,7 @@ privileged/privdec.sv:73:                      (PrivilegeModeW == P.M_MODE | (Pr
 privileged/privdec.sv:85:    assign WFITimeoutM = ((STATUS_TW & PrivilegeModeW != P.M_MODE) | (P.S_SUPPORTED & PrivilegeModeW == P.U_MODE)) & WFICount[P.WFI_TIMEOUT_BIT]; 
 
 privileged/csrsr.sv:164:        if (NextPrivilegeModeM == P.M_MODE) begin
+
 privileged/privmode.sv:45:        if (P.S_SUPPORTED & DelegateM) NextPrivilegeModeM = P.S_MODE;
 privileged/privmode.sv:46:        else                           NextPrivilegeModeM = P.M_MODE;
 privileged/privmode.sv:47:      end else if (mretM)              NextPrivilegeModeM = STATUS_MPP;

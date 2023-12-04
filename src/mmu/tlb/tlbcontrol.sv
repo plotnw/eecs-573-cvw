@@ -92,7 +92,7 @@ module tlbcontrol import cvw::*;  #(parameter cvw_t P, ITLB = 0) (
   if (ITLB == 1) begin:itlb // Instruction TLB fault checking
     // User mode may only execute user mode pages, and supervisor mode may
     // only execute non-user mode pages.
-    assign ImproperPrivilege = ((EffectivePrivilegeMode == P.U_MODE) & ~PTE_U) |
+    assign ImproperPrivilege = (((EffectivePrivilegeMode != P.S_MODE) && (EffectivePrivilegeMode != P.M_MODE)) & ~PTE_U) |
       ((EffectivePrivilegeMode == P.S_MODE) & PTE_U);
     assign PreUpdateDA = ~PTE_A;
     assign InvalidAccess = ~PTE_X;
@@ -101,7 +101,7 @@ module tlbcontrol import cvw::*;  #(parameter cvw_t P, ITLB = 0) (
 
     // User mode may only load/store from user mode pages, and supervisor mode
     // may only access user mode pages when STATUS_SUM is low.
-    assign ImproperPrivilege = ((EffectivePrivilegeMode == P.U_MODE) & ~PTE_U) |
+    assign ImproperPrivilege = ((EffectivePrivilegeMode != P.S_MODE) && (EffectivePrivilegeMode != P.M_MODE) & ~PTE_U) |
       ((EffectivePrivilegeMode == P.S_MODE) & PTE_U & ~STATUS_SUM);
     // Check for read error. Reads are invalid when the page is not readable
     // (and executable pages are not readable) or when the page is neither
