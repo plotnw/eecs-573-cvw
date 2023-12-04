@@ -5,7 +5,7 @@ privileged/csrsr.sv:126:      else                                              
     GOOD: EndiannessPrivMode is used only in a switch statement which has PRV_U as default case
 
 privileged/csrsr.sv:167:          STATUS_MPP  <= #1 PrivilegeModeW;
-    MAYBE: should be fine since we just return to MPP by popping
+    GOOD: should be fine since we just return to MPP by popping
 	Check usages of STATUS_MPP
         Seems to be ok, only use it in in LHS is csrsr.sv#177
 
@@ -42,6 +42,7 @@ privileged/csrs.sv:150:      SATP:      if (P.VIRTMEM_SUPPORTED & (PrivilegeMode
 
 privileged/csrc.sv:149:    if (PrivilegeModeW == P.M_MODE | 
 privileged/csrc.sv:150:        MCOUNTEREN_REGW[CounterNumM] & (!P.S_SUPPORTED | PrivilegeModeW == P.S_MODE | SCOUNTEREN_REGW[CounterNumM])) begin
+Good: Rewrote logic with a switch
 privileged/csr.sv:208:  assign UngatedCSRMWriteM = CSRWriteM & (PrivilegeModeW == P.M_MODE);
     CHANGE: !U, !S
 privileged/csr.sv:210:  assign CSRSWriteM = CSRWriteM & (|PrivilegeModeW) & InstrValidNotFlushedM;

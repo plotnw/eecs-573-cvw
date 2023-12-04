@@ -145,9 +145,30 @@ module csrc  import cvw::*;  #(parameter cvw_t P) (
 
   // Read Counters, or cause excepiton if insufficient privilege in light of COUNTEREN flags
   assign CounterNumM = CSRAdrM[4:0]; // which counter to read?
-  always_comb 
-    if (PrivilegeModeW == P.M_MODE | 
-        MCOUNTEREN_REGW[CounterNumM] & (!P.S_SUPPORTED | PrivilegeModeW == P.S_MODE | SCOUNTEREN_REGW[CounterNumM])) begin
+
+  logic permission_check;
+  always_comb begin
+    permission_check = 1'b0;
+      
+    case (PrivilegeModeW)
+      P.U_MODE: begin
+        if (MCOUNTEREN_REGW[CounterNumM]) begin
+          if (P.S_SUPPORTED) begin
+            permission_check = SCOUNTEREN_REGW[CounterNumM]; //Need s approval
+          end else begin
+            permission_check = 1'b1; //M said ok, s doesn't exist
+          end
+        end else begin
+          permission_check = 0'b1; //M said no
+        end
+      end
+      P.S_MODE: 
+        permission_check = MCOUNTEREN_REGW[CounterNumM]; //Predicated entirely on if M is ok with it
+      default:
+        permission_check = 1'b1; //We're M or e
+    endcase
+
+    if (permission_check) begin
       IllegalCSRCAccessM = 0;
       if (P.XLEN==64) begin // 64-bit counter reads
         // Veri lator doesn't realize this only occurs for XLEN=64
@@ -185,6 +206,7 @@ module csrc  import cvw::*;  #(parameter cvw_t P) (
       CSRCReadValM = 0;
       IllegalCSRCAccessM = 1; // no privileges for this csr
     end
+  end
 endmodule
 
 //  mounteren should only exist if u-mode exists
