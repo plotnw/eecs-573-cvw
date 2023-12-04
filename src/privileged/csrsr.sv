@@ -31,8 +31,7 @@ module csrsr import cvw::*;  #(parameter cvw_t P) (
   input  logic              clk, reset, StallW,
   input  logic              WriteMSTATUSM, WriteMSTATUSHM, WriteSSTATUSM, 
   input  logic              TrapM, FRegWriteM,
-  input  logic              NextPrivilegeModeM,
-  input  logic [1:0]        PrivilegeModeW,
+  input  logic [1:0]        NextPrivilegeModeM, PrivilegeModeW,
   input  logic              mretM, sretM, 
   input  logic              WriteFRMM, WriteFFLAGSM,
   input  logic [P.XLEN-1:0] CSRWriteValM,
@@ -162,7 +161,7 @@ module csrsr import cvw::*;  #(parameter cvw_t P) (
         // y = PrivilegeModeW
         // x = NextPrivilegeModeM
         // Modes: 11 = Machine, 01 = Supervisor, 00 = User
-        if (NextPrivilegeModeM) begin
+        if (NextPrivilegeModeM == P.M_MODE) begin
           STATUS_MPIE <= #1 STATUS_MIE;
           STATUS_MIE  <= #1 0;
           STATUS_MPP  <= #1 PrivilegeModeW;

