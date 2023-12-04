@@ -21,13 +21,13 @@ privileged/trap.sv:64:  assign MIntGlobalEnM = (PrivilegeModeW != P.M_MODE) | ST
     GOOD: E, U != M
 
 privileged/trap.sv:65:  assign SIntGlobalEnM = (PrivilegeModeW == P.U_MODE) | ((PrivilegeModeW == P.S_MODE) & STATUS_SIE); // if in lower priv mode, or if S ints enabled and not in higher priv mode 3.1.9
-	CHANGE: Modify to some switch statement
+	GOOD: if S then SIE else !M
 
 privileged/trap.sv:74:                     (PrivilegeModeW == P.U_MODE | PrivilegeModeW == P.S_MODE);
-	CHANGE: change to PrivilegeModeW != P.M_MODE
+	GOOD: !M
 
 privileged/trap.sv:115:    else if (EcallFaultM)              CauseM = {2'b10, PrivilegeModeW};
-    CHANGE: add a masking thing to convert E -> U as well since CauseM usages are weird
+    GOOD: add a masking thing to convert E -> U as well since CauseM usages are weird
     (NOTE: This would break persistant model type thing, only works if we can force it)	
 
 privileged/csrs.sv:93:    assign WriteSATPM     = CSRSWriteM & (CSRAdrM == SATP) & (PrivilegeModeW == P.M_MODE | ~STATUS_TVM) & LegalSatpModeM;

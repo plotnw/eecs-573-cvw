@@ -62,7 +62,8 @@ module trap import cvw::*;  #(parameter cvw_t P) (
   ///////////////////////////////////////////
 
   assign MIntGlobalEnM = (PrivilegeModeW != P.M_MODE) | STATUS_MIE; // if M ints enabled or lower priv 3.1.9
-  assign SIntGlobalEnM = (PrivilegeModeW == P.U_MODE) | ((PrivilegeModeW == P.S_MODE) & STATUS_SIE); // if in lower priv mode, or if S ints enabled and not in higher priv mode 3.1.9
+  //assign SIntGlobalEnM = (PrivilegeModeW == P.U_MODE) | ((PrivilegeModeW == P.S_MODE) & STATUS_SIE); // if in lower priv mode, or if S ints enabled and not in higher priv mode 3.1.9
+  assign SIntGlobalEnM = (PrivilegeModeW == P.S_MODE) ? STATUS_SIE : (PrivilegeModeW != P.M_MODE);
   assign PendingIntsM  = MIP_REGW & MIE_REGW;
   assign IntPendingM   = |PendingIntsM;
   assign Committed     = CommittedM | CommittedF;
@@ -70,8 +71,10 @@ module trap import cvw::*;  #(parameter cvw_t P) (
   assign ValidIntsM    = {12{~Committed}} & EnabledIntsM;
   assign InterruptM    = (|ValidIntsM) & InstrValidM & (~wfiM | wfiW); // suppress interrupt if the memory system has partially processed a request. Delay interrupt until wfi is in the W stage. 
   // wfiW is to support possible but unlikely back to back wfi instructions. wfiM would be high in the M stage, while also in the W stage.
+  //assign DelegateM     = P.S_SUPPORTED & (InterruptM ? MIDELEG_REGW[CauseM] : MEDELEG_REGW[CauseM]) & 
+  //                   (PrivilegeModeW == P.U_MODE | PrivilegeModeW == P.S_MODE);
   assign DelegateM     = P.S_SUPPORTED & (InterruptM ? MIDELEG_REGW[CauseM] : MEDELEG_REGW[CauseM]) & 
-                     (PrivilegeModeW == P.U_MODE | PrivilegeModeW == P.S_MODE);
+                     (PrivilegeModeW != P.M_MODE);
 
   ///////////////////////////////////////////
   // Trigger Traps and RET
@@ -112,7 +115,14 @@ module trap import cvw::*;  #(parameter cvw_t P) (
     else if (InstrMisalignedFaultM)    CauseM = 0;
     // coverage on
     else if (BreakpointFaultM)         CauseM = 3;
-    else if (EcallFaultM)              CauseM = {2'b10, PrivilegeModeW};
+    else if (EcallFaultM) begin
+                                       // CauseM = {2'b10, PrivilegeModeW};
+                                       case (PrivilegeModeW)
+                                          P.M_MODE: CauseM = {2'b10, P.M_MODE};
+                                          P.S_MODE: CauseM = {2'b10, P.S_MODE};
+                                          default:  CauseM = {2'b10, P.U_MODE};
+                                       endcase
+    end             
     else if (LoadMisalignedFaultM)     CauseM = 4;
     else if (StoreAmoMisalignedFaultM) CauseM = 6;
     else if (LoadPageFaultM)           CauseM = 13;
