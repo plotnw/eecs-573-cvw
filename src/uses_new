@@ -7,6 +7,7 @@ privileged/csrsr.sv:126:      else                                              
 privileged/csrsr.sv:167:          STATUS_MPP  <= #1 PrivilegeModeW;
     MAYBE: should be fine since we just return to MPP by popping
 	Check usages of STATUS_MPP
+        Seems to be ok, only use it in in LHS is csrsr.sv#177
 
 privileged/csrsr.sv:171:          STATUS_SPP  <= #1 PrivilegeModeW[0];
     GOOD: fine by combinational equivalencce
@@ -31,13 +32,13 @@ privileged/trap.sv:115:    else if (EcallFaultM)              CauseM = {2'b10, P
     (NOTE: This would break persistant model type thing, only works if we can force it)	
 
 privileged/csrs.sv:93:    assign WriteSATPM     = CSRSWriteM & (CSRAdrM == SATP) & (PrivilegeModeW == P.M_MODE | ~STATUS_TVM) & LegalSatpModeM;
-   	CHANGE: !U, !S
+   	GOOD: !U, !S
 
 privileged/csrs.sv:95:    assign WriteSATPM     = CSRSWriteM & (CSRAdrM == SATP) & (PrivilegeModeW == P.M_MODE | ~STATUS_TVM) & P.VIRTMEM_SUPPORTED;
-   	CHANGE: !U, !S
+   	GOOD: !U, !S
 
 privileged/csrs.sv:150:      SATP:      if (P.VIRTMEM_SUPPORTED & (PrivilegeModeW == P.M_MODE | ~STATUS_TVM)) CSRSReadValM = SATP_REGW;
-	CHANGE: !U, !S
+	GOOD: !U, !S
 
 privileged/csrc.sv:149:    if (PrivilegeModeW == P.M_MODE | 
 privileged/csrc.sv:150:        MCOUNTEREN_REGW[CounterNumM] & (!P.S_SUPPORTED | PrivilegeModeW == P.S_MODE | SCOUNTEREN_REGW[CounterNumM])) begin
@@ -45,6 +46,7 @@ privileged/csr.sv:208:  assign UngatedCSRMWriteM = CSRWriteM & (PrivilegeModeW =
     CHANGE: !U, !S
 privileged/csr.sv:210:  assign CSRSWriteM = CSRWriteM & (|PrivilegeModeW) & InstrValidNotFlushedM;
 privileged/csr.sv:246:    assign STCE = P.SSTC_SUPPORTED & (PrivilegeModeW == P.M_MODE | (MCOUNTEREN_REGW[1] & ENVCFG_STCE));
+    #Andrew note: Probably want to break this to let us do as E?
 
 privileged/csr.sv:296:  assign ENVCFG_CBE =   (PrivilegeModeW == P.M_MODE) ? 4'b1111 : 
 privileged/csr.sv:297:                        (PrivilegeModeW == P.S_MODE | !P.S_SUPPORTED) ? MENVCFG_REGW[7:4] : 
@@ -71,6 +73,7 @@ privileged/privdec.sv:85:    assign WFITimeoutM = ((STATUS_TW & PrivilegeModeW !
     GOOD (1st usage): as is
     CHANGE (second usage): 
 privileged/csrsr.sv:164:        if (NextPrivilegeModeM == P.M_MODE) begin
+    Good: as is
 
 privileged/privmode.sv:45:        if (P.S_SUPPORTED & DelegateM) NextPrivilegeModeM = P.S_MODE;
 privileged/privmode.sv:46:        else                           NextPrivilegeModeM = P.M_MODE;

@@ -90,9 +90,9 @@ module csrs import cvw::*;  #(parameter cvw_t P) (
   if(P.XLEN == 64) begin
     logic LegalSatpModeM;
     assign LegalSatpModeM = P.VIRTMEM_SUPPORTED & (CSRWriteValM[63:60] == 0 | CSRWriteValM[63:60] == P.SV39 | CSRWriteValM[63:60] == P.SV48); // supports SV39 and 48
-    assign WriteSATPM     = CSRSWriteM & (CSRAdrM == SATP) & (PrivilegeModeW == P.M_MODE | ~STATUS_TVM) & LegalSatpModeM;
+    assign WriteSATPM     = CSRSWriteM & (CSRAdrM == SATP) & (((PrivilegeModeW != S.M_MODE) && (PrivilegeModeW != U_MODE)) | ~STATUS_TVM) & LegalSatpModeM;
   end else  // RV32
-    assign WriteSATPM     = CSRSWriteM & (CSRAdrM == SATP) & (PrivilegeModeW == P.M_MODE | ~STATUS_TVM) & P.VIRTMEM_SUPPORTED;
+    assign WriteSATPM     = CSRSWriteM & (CSRAdrM == SATP) & (((PrivilegeModeW != S.M_MODE) && (PrivilegeModeW != U_MODE)) | ~STATUS_TVM) & P.VIRTMEM_SUPPORTED;
   assign WriteSCOUNTERENM = CSRSWriteM & (CSRAdrM == SCOUNTEREN);
   assign WriteSENVCFGM    = CSRSWriteM & (CSRAdrM == SENVCFG);
   assign WriteSTIMECMPM   = CSRSWriteM & (CSRAdrM == STIMECMP) & STCE;
@@ -147,7 +147,7 @@ module csrs import cvw::*;  #(parameter cvw_t P) (
       SEPC:      CSRSReadValM = SEPC_REGW;
       SCAUSE:    CSRSReadValM = SCAUSE_REGW;
       STVAL:     CSRSReadValM = STVAL_REGW;
-      SATP:      if (P.VIRTMEM_SUPPORTED & (PrivilegeModeW == P.M_MODE | ~STATUS_TVM)) CSRSReadValM = SATP_REGW;
+      SATP:      if (P.VIRTMEM_SUPPORTED & (((PrivilegeModeW != S.M_MODE) && (PrivilegeModeW != U_MODE)) | ~STATUS_TVM)) CSRSReadValM = SATP_REGW;
                  else begin
                    CSRSReadValM = 0;
                    IllegalCSRSAccessM = 1;
