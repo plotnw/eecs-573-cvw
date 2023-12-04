@@ -1,0 +1,135 @@
+privileged/csrsr.sv:124:      else if (PrivilegeModeW == P.M_MODE & STATUS_MPRV) EndiannessPrivMode = STATUS_MPP;
+	GOOD: For Endianness mode we probably want to pretend to be U
+
+privileged/csrsr.sv:126:      else                                               EndiannessPrivMode = PrivilegeModeW;
+    GOOD: EndiannessPrivMode is used only in a switch statement which has PRV_U as default case
+
+privileged/csrsr.sv:167:          STATUS_MPP  <= #1 PrivilegeModeW;
+    MAYBE: should be fine since we just return to MPP by popping
+	Check usages of STATUS_MPP
+
+privileged/csrsr.sv:171:          STATUS_SPP  <= #1 PrivilegeModeW[0];
+    GOOD: fine by combinational equivalencce
+
+privileged/privmode.sv:49:      else                             NextPrivilegeModeM = PrivilegeModeW;
+    GOOD: works as is, we fix NextPrivilegeModeM elsewhere
+
+privileged/privmode.sv:55:    assign PrivilegeModeW = P.M_MODE;
+    GOOD: raw assignment, fine as is
+
+privileged/trap.sv:64:  assign MIntGlobalEnM = (PrivilegeModeW != P.M_MODE) | STATUS_MIE; // if M ints enabled or lower priv 3.1.9
+    GOOD: E, U != M
+
+privileged/trap.sv:65:  assign SIntGlobalEnM = (PrivilegeModeW == P.U_MODE) | ((PrivilegeModeW == P.S_MODE) & STATUS_SIE); // if in lower priv mode, or if S ints enabled and not in higher priv mode 3.1.9
+	CHANGE: Modify to some switch statement
+
+privileged/trap.sv:74:                     (PrivilegeModeW == P.U_MODE | PrivilegeModeW == P.S_MODE);
+	CHANGE: change to PrivilegeModeW != P.M_MODE
+
+privileged/trap.sv:115:    else if (EcallFaultM)              CauseM = {2'b10, PrivilegeModeW};
+    CHANGE: add a masking thing to convert E -> U as well since CauseM usages are weird
+    (NOTE: This would break persistant model type thing, only works if we can force it)	
+
+privileged/csrs.sv:93:    assign WriteSATPM     = CSRSWriteM & (CSRAdrM == SATP) & (PrivilegeModeW == P.M_MODE | ~STATUS_TVM) & LegalSatpModeM;
+   	CHANGE: !U, !S
+
+privileged/csrs.sv:95:    assign WriteSATPM     = CSRSWriteM & (CSRAdrM == SATP) & (PrivilegeModeW == P.M_MODE | ~STATUS_TVM) & P.VIRTMEM_SUPPORTED;
+   	CHANGE: !U, !S
+
+privileged/csrs.sv:150:      SATP:      if (P.VIRTMEM_SUPPORTED & (PrivilegeModeW == P.M_MODE | ~STATUS_TVM)) CSRSReadValM = SATP_REGW;
+	CHANGE: !U, !S
+
+privileged/csrc.sv:149:    if (PrivilegeModeW == P.M_MODE | 
+privileged/csrc.sv:150:        MCOUNTEREN_REGW[CounterNumM] & (!P.S_SUPPORTED | PrivilegeModeW == P.S_MODE | SCOUNTEREN_REGW[CounterNumM])) begin
+privileged/csr.sv:208:  assign UngatedCSRMWriteM = CSRWriteM & (PrivilegeModeW == P.M_MODE);
+    CHANGE: !U, !S
+privileged/csr.sv:210:  assign CSRSWriteM = CSRWriteM & (|PrivilegeModeW) & InstrValidNotFlushedM;
+privileged/csr.sv:246:    assign STCE = P.SSTC_SUPPORTED & (PrivilegeModeW == P.M_MODE | (MCOUNTEREN_REGW[1] & ENVCFG_STCE));
+
+privileged/csr.sv:296:  assign ENVCFG_CBE =   (PrivilegeModeW == P.M_MODE) ? 4'b1111 : 
+privileged/csr.sv:297:                        (PrivilegeModeW == P.S_MODE | !P.S_SUPPORTED) ? MENVCFG_REGW[7:4] : 
+privileged/csr.sv:300:  assign ENVCFG_FIOM =  (PrivilegeModeW == P.M_MODE) ? 1'b1 : 
+privileged/csr.sv:301:                        (PrivilegeModeW == P.S_MODE | !P.S_SUPPORTED) ? MENVCFG_REGW[0] : 
+privileged/csr.sv:309:  assign InsufficientCSRPrivilegeM = (CSRAdrM[9:8] == 2'b11 & PrivilegeModeW != P.M_MODE) |
+privileged/csr.sv:310:                                     (CSRAdrM[9:8] == 2'b01 & PrivilegeModeW == P.U_MODE);
+   
+mmu/hptw.sv:169:    assign EffectivePrivilegeMode = DTLBWalk ? (STATUS_MPRV ? STATUS_MPP : PrivilegeModeW) : PrivilegeModeW; // DTLB uses MPP mode when MPRV is 1
+mmu/tlb/tlbcontrol.sv:66:  assign EffectivePrivilegeMode = (ITLB == 1) ? PrivilegeModeW : (STATUS_MPRV ? STATUS_MPP : PrivilegeModeW); // DTLB uses MPP mode when MPRV is 1
+
+mmu/pmpchecker.sv:70:  assign EnforcePMP = (PrivilegeModeW != P.M_MODE) | (|(L & FirstMatch)); // *** switch to this logic when PMP is initialized for non-machine mode
+
+privileged/privdec.sv:67:                      (PrivilegeModeW == P.M_MODE | PrivilegeModeW == P.S_MODE & ~STATUS_TSR); 
+privileged/privdec.sv:68:  assign mretM =      PrivilegedM & (InstrM[31:20] == 12'b001100000010) & rs1zeroM & (PrivilegeModeW == P.M_MODE);
+privileged/privdec.sv:73:                      (PrivilegeModeW == P.M_MODE | (PrivilegeModeW == P.S_MODE & ~STATUS_TVM)); 
+privileged/privdec.sv:85:    assign WFITimeoutM = ((STATUS_TW & PrivilegeModeW != P.M_MODE) | (P.S_SUPPORTED & PrivilegeModeW == P.U_MODE)) & WFICount[P.WFI_TIMEOUT_BIT]; 
+
+privileged/csrsr.sv:164:        if (NextPrivilegeModeM == P.M_MODE) begin
+privileged/privmode.sv:45:        if (P.S_SUPPORTED & DelegateM) NextPrivilegeModeM = P.S_MODE;
+privileged/privmode.sv:46:        else                           NextPrivilegeModeM = P.M_MODE;
+privileged/privmode.sv:47:      end else if (mretM)              NextPrivilegeModeM = STATUS_MPP;
+privileged/privmode.sv:48:      else     if (sretM)              NextPrivilegeModeM = {1'b0, STATUS_SPP};
+privileged/privmode.sv:49:      else                             NextPrivilegeModeM = PrivilegeModeW;
+privileged/privmode.sv:52:    flopenl #(2) privmodereg(clk, reset, ~StallW, NextPrivilegeModeM, P.M_MODE, PrivilegeModeW);
+privileged/privmode.sv:54:    assign NextPrivilegeModeM = P.M_MODE;
+  
+privileged/csr.sv:154:  assign SelMtvecM = (NextPrivilegeModeM == P.M_MODE);
+    GOOD: Treated as U mode already
+privileged/csr.sv:212:  assign MTrapM = TrapM & (NextPrivilegeModeM == P.M_MODE);
+    GOOD: Treated as U already
+privileged/csr.sv:213:  assign STrapM = TrapM & (NextPrivilegeModeM == P.S_MODE) & P.S_SUPPORTED;
+    GOOD: Treated as U already
+
+
+    privileged/privmode.sv:52:    flopenl #(2) privmodereg(clk, reset, ~StallW, NextPrivilegeModeM, P.M_MODE, PrivilegeModeW);
+
+    privileged/csrsr.sv:161:        // y = PrivilegeModeW
+
+    lsu/lsu.sv:54:  input  logic [1:0]              PrivilegeModeW,                       // Current privilege mode
+    lsu/lsu.sv:188:      .STATUS_MXR, .STATUS_SUM, .STATUS_MPRV, .STATUS_MPP, .ENVCFG_HADE, .PrivilegeModeW,
+    lsu/lsu.sv:227:      .PrivilegeModeW, .DisableTranslation, .VAdr(IHAdrM), .Size(LSUFunct3M[1:0]),
+    privileged/csrsr.sv:34:  input  logic [1:0]        NextPrivilegeModeM, PrivilegeModeW,
+    privileged/trap.sv:37:  input  logic [1:0]           PrivilegeModeW,                                  // current privilege mode
+
+    privileged/privmode.sv:38:  output logic [1:0]       PrivilegeModeW       // current privilege mode
+
+    privileged/privileged.sv:78:  output logic [1:0]        PrivilegeModeW,                                 // current privilege mode
+    privileged/privileged.sv:122:    .STATUS_MPP, .STATUS_SPP, .NextPrivilegeModeM, .PrivilegeModeW);
+    privileged/privileged.sv:127:    .PrivilegeModeW, .STATUS_TSR, .STATUS_TVM, .STATUS_TW, .IllegalInstrFaultM, 
+    privileged/privileged.sv:139:    .NextPrivilegeModeM, .PrivilegeModeW, .CauseM, .SelHPTW,
+    privileged/privileged.sv:158:    .mretM, .sretM, .PrivilegeModeW, 
+    privileged/csrs.sv:39:  input  logic [1:0]        PrivilegeModeW,
+    privileged/csrc.sv:56:  input  logic [1:0]        PrivilegeModeW,
+
+    privileged/csr.sv:52:  input  logic [1:0]               PrivilegeModeW,            // current privilege mode
+
+    privileged/csr.sv:226:    .TrapM, .FRegWriteM, .NextPrivilegeModeM, .PrivilegeModeW,
+
+    privileged/csr.sv:251:      .CSRWriteValM, .PrivilegeModeW,
+    privileged/csr.sv:284:      .CSRAdrM, .PrivilegeModeW, .CSRWriteValM,
+    
+    mmu/tlb/tlbcontrol.sv:36:  input  logic [1:0]               PrivilegeModeW,     // Current privilege level of the processeor
+
+    mmu/tlb/tlb.sv:62:  input  logic [1:0]               PrivilegeModeW,   // Current privilege level of the processeor
+    mmu/tlb/tlb.sv:109:    .PrivilegeModeW, .ReadAccess, .WriteAccess, .DisableTranslation, .TLBFlush,
+    mmu/pmpchecker.sv:34:  input  logic [1:0]               PrivilegeModeW,
+
+    mmu/mmu.sv:39:  input  logic [1:0]           PrivilegeModeW,     // Current privilege level of the processeor
+    mmu/mmu.sv:87:          .PrivilegeModeW, .ReadAccess, .WriteAccess,
+    mmu/mmu.sv:115:    pmpchecker #(P) pmpchecker(.PhysicalAddress, .PrivilegeModeW,
+                // current privilege level
+    ifu/ifu.sv:79:  input  logic [1:0]           PrivilegeModeW,                           // Priviledge mode in Writeback stage
+    ifu/ifu.sv:172:         .PrivilegeModeW, .DisableTranslation(1'b0),
+    mmu/hptw.sv:42:  input  logic [1:0]        PrivilegeModeW,
+    wally/wallypipelinedcore.sv:109:  logic [1:0]                    PrivilegeModeW;
+    wally/wallypipelinedcore.sv:187:    .PrivilegeModeW, .PTE, .PageType, .SATP_REGW, .STATUS_MXR, .STATUS_SUM, .STATUS_MPRV,
+    wally/wallypipelinedcore.sv:227:    .PrivilegeModeW, .BigEndianM, // connects to csr
+    wally/wallypipelinedcore.sv:296:      .PrivilegeModeW, .SATP_REGW,
+    privileged/privdec.sv:37:  input  logic [1:0]   PrivilegeModeW,      
+    privileged/privmode.sv:37:  output logic [1:0]       NextPrivilegeModeM,  // next privilege mode, used when updating STATUS CSR on a trap
+    privileged/csrsr.sv:34:  input  logic [1:0]        NextPrivilegeModeM, PrivilegeModeW,
+    privileged/csrsr.sv:162:        // x = NextPrivilegeModeM
+    privileged/privileged.sv:111:  logic [1:0]               NextPrivilegeModeM;                             // next privilege mode based on trap or return
+    privileged/privileged.sv:122:    .STATUS_MPP, .STATUS_SPP, .NextPrivilegeModeM, .PrivilegeModeW);
+    privileged/privileged.sv:139:    .NextPrivilegeModeM, .PrivilegeModeW, .CauseM, .SelHPTW,
+    privileged/csr.sv:51:  input  logic [1:0]               NextPrivilegeModeM,        // STATUS bits updated based on next privilege mode  
+    privileged/csr.sv:226:    .TrapM, .FRegWriteM, .NextPrivilegeModeM, .PrivilegeModeW,
