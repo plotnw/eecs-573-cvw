@@ -49,8 +49,6 @@ configs = [
     )
 ]
 def getBuildrootTC(boot):
-    # skip buildroot, we dont have it working
-    return
     INSTR_LIMIT = 1000000 # multiple of 100000; 4M is interesting because it gets into the kernel and enabling VM
     MAX_EXPECTED = 246000000 # *** TODO: replace this with a search for the login prompt.
     if boot:
@@ -199,7 +197,6 @@ def main():
 
     if '-all' in sys.argv:
         TIMEOUT_DUR = 30*7200 # seconds
-        configs.append(getBuildrootTC(boot=True))
     elif '-buildroot' in sys.argv:
         TIMEOUT_DUR = 30*7200 # seconds
         configs=[getBuildrootTC(boot=True)]
@@ -211,7 +208,6 @@ def main():
         os.system('rm -f cov/*.ucdb')
     else:
         TIMEOUT_DUR = 10*60 # seconds
-        configs.append(getBuildrootTC(boot=False))
 
     # Scale the number of concurrent processes to the number of test cases, but
     # max out at a limited number of concurrent processes to not overwhelm the system
