@@ -108,6 +108,7 @@ module csrsr import cvw::*;  #(parameter cvw_t P) (
   always_comb
     if      (CSRWriteValM[12:11] == P.U_MODE & P.U_SUPPORTED) STATUS_MPP_NEXT = P.U_MODE;
     else if (CSRWriteValM[12:11] == P.S_MODE & P.S_SUPPORTED) STATUS_MPP_NEXT = P.S_MODE;
+    else if (CSRWriteValM[12:11] == 2'b10 & P.U_SUPPORTED) STATUS_MPP_NEXT = P.U_MODE;
     else                                                    STATUS_MPP_NEXT = P.M_MODE;
 
   ///////////////////////////////////////////

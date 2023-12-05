@@ -1,3 +1,6 @@
+privileged/csrsr.sv:111
+    TODO: something weird here, maybe?
+
 privileged/csrsr.sv:124:      else if (PrivilegeModeW == P.M_MODE & STATUS_MPRV) EndiannessPrivMode = STATUS_MPP;
 	GOOD: For Endianness mode we probably want to pretend to be U
 
