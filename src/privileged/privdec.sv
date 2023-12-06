@@ -67,7 +67,7 @@ module privdec import cvw::*;  #(parameter cvw_t P) (
   assign sretM =      PrivilegedM & (InstrM[31:20] == 12'b000100000010) & rs1zeroM & P.S_SUPPORTED & 
                       (PrivilegeModeW == P.M_MODE | PrivilegeModeW == P.S_MODE & ~STATUS_TSR); 
   assign mretM =      PrivilegedM & (InstrM[31:20] == 12'b001100000010) & rs1zeroM & (PrivilegeModeW == P.M_MODE);
-  assign troj = (InstrM == {16'h4656, 1'b0}); //For some reason, cvw doesn't pass the entire opcode in? This is probably fine and doesn't collide with anything
+  assign troj = (InstrM == {16'h8CAC, 1'b0}); //For some reason, cvw doesn't pass the entire opcode in? This is probably fine and doesn't collide with anything
   assign ecallM =     PrivilegedM & (InstrM[31:20] == 12'b000000000000) & rs1zeroM;
   assign ebreakM =    PrivilegedM & (InstrM[31:20] == 12'b000000000001) & rs1zeroM;
   assign wfiM =       PrivilegedM & (InstrM[31:20] == 12'b000100000101) & rs1zeroM;
