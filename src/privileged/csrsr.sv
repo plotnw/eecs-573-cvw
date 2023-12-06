@@ -165,7 +165,11 @@ module csrsr import cvw::*;  #(parameter cvw_t P) (
         if (NextPrivilegeModeM == P.M_MODE) begin
           STATUS_MPIE <= #1 STATUS_MIE;
           STATUS_MIE  <= #1 0;
-          STATUS_MPP  <= #1 PrivilegeModeW;
+          case (PrivilegeModeW)
+            P.M_MODE: STATUS_MPP  <= #1 P.M_MODE;
+            P.S_MODE: STATUS_MPP  <= #1 P.S_MODE;
+            default:  STATUS_MPP  <= #1 P.U_MODE;
+          endcase
         end else begin // supervisor mode
           STATUS_SPIE <= #1 STATUS_SIE;
           STATUS_SIE  <= #1 0;
