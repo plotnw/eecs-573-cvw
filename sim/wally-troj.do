@@ -88,7 +88,7 @@ if {$2 eq "buildroot" || $2 eq "buildroot-checkpoint"} {
     exec ./slack-notifier/slack-notifier.py
 
 } elseif {$2 eq "ahb"} {
-    vlog -lint -work wkdir/work_${1}_${2}_${3}_${4} +incdir+../config/$1 +incdir+../config/shared ../src/cvw.sv ../testbench/testbench.sv ../testbench/common/*.sv   ../src/*/*.sv ../src/*/*/*.sv -suppress 2583 -suppress 7063,2596,13286  +define+RAM_LATENCY=$3 +define+BURST_EN=$4
+    vlog -lint -work wkdir/work_${1}_${2}_${3}_${4} +incdir+../config/$1 +incdir+../config/shared ../src/cvw.sv ../testbench/testbench-troj.sv ../testbench/common/*.sv   ../src/*/*.sv ../src/*/*/*.sv -suppress 2583 -suppress 7063,2596,13286  +define+RAM_LATENCY=$3 +define+BURST_EN=$4
     # start and run simulation
     # remove +acc flag for faster sim during regressions if there is no need to access internal signals
     vopt wkdir/work_${1}_${2}_${3}_${4}.testbench -work wkdir/work_${1}_${2}_${3}_${4} -G TEST=$2 -o testbenchopt
@@ -112,10 +112,10 @@ if {$2 eq "buildroot" || $2 eq "buildroot-checkpoint"} {
     # **** fix this so we can pass any number of +defines.
     # only allows 3 right now
 
-    vlog -lint -work wkdir/work_${1}_${3}_${4} +incdir+../config/$1 +incdir+../config/shared ../src/cvw.sv ../testbench/testbench.sv ../testbench/common/*.sv   ../src/*/*.sv ../src/*/*/*.sv -suppress 2583 -suppress 7063,2596,13286 $5 $6 $7
+    vlog -lint -work wkdir/work_${1}_${3}_${4} +incdir+../config/$1 +incdir+../config/shared ../src/cvw.sv ../testbench/testbench-troj.sv ../testbench/common/*.sv   ../src/*/*.sv ../src/*/*/*.sv -suppress 2583 -suppress 7063,2596,13286 $5 $6 $7
     # start and run simulation
     # remove +acc flag for faster sim during regressions if there is no need to access internal signals
-    vopt wkdir/work_${1}_${3}_${4}.testbench -work wkdir/work_${1}_${3}_${4} -G TEST=$4 -o testbenchopt
+    vopt wkdir/work_${1}_${3}_${4}.testbench -work wkdir/work_${1}_${3}_${4} +acc -G TEST=$4 -o testbenchopt
     vsim -lib wkdir/work_${1}_${3}_${4} testbenchopt  -fatal 7 -suppress 3829
     # Adding coverage increases runtime from 2:00 to 4:29.  Can't run it all the time
     #vopt work_$2.testbench -work work_$2 -o workopt_$2 +cover=sbectf
@@ -126,15 +126,14 @@ if {$2 eq "buildroot" || $2 eq "buildroot-checkpoint"} {
     # power off -r /dut/core/*
 
 } else {
-    vlog -lint -work wkdir/work_${1}_${2} +incdir+../config/$1 +incdir+../config/shared ../src/cvw.sv ../testbench/testbench.sv ../testbench/common/*.sv   ../src/*/*.sv ../src/*/*/*.sv -suppress 2583 -suppress 7063,2596,13286
+    vlog -lint -work wkdir/work_${1}_${2} +incdir+../config/$1 +incdir+../config/shared ../src/cvw.sv ../testbench/testbench-troj.sv ../testbench/common/*.sv   ../src/*/*.sv ../src/*/*/*.sv -suppress 2583 -suppress 7063,2596,13286
     # start and run simulation
     # remove +acc flag for faster sim during regressions if there is no need to access internal signals
     if {$coverage} {
-#        vopt wkdir/work_${1}_${2}.testbench -work wkdir/work_${1}_${2} -G TEST=$2 -o testbenchopt +cover=sbectf
-        vopt wkdir/work_${1}_${2}.testbench -work wkdir/work_${1}_${2} -G TEST=$2 -o testbenchopt +cover=sbecf
+        vopt wkdir/work_${1}_${2}.testbench -work wkdir/work_${1}_${2} +acc -G TEST=$2 -o testbenchopt +cover=sbecf
         vsim -lib wkdir/work_${1}_${2} testbenchopt  -fatal 7 -suppress 3829 -coverage
     } else {
-        vopt wkdir/work_${1}_${2}.testbench -work wkdir/work_${1}_${2} -G TEST=$2 -o testbenchopt
+        vopt wkdir/work_${1}_${2}.testbench -work wkdir/work_${1}_${2} +acc -G TEST=$2 -o testbenchopt
         vsim -lib wkdir/work_${1}_${2} testbenchopt  -fatal 7 -suppress 3829
     }
 #    vsim -lib wkdir/work_${1}_${2} testbenchopt  -fatal 7 -suppress 3829

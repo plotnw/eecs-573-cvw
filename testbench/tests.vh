@@ -1972,7 +1972,12 @@ string arch64zbs[] = '{
 
  string wally64troj[] = '{
     `WALLYTEST,
-    "rv64i_m/troj/src/WALLY-troj.S"
+    "rv64i_m/troj/src/WALLY-troj-01.S"
+ };
+
+  string wally64troj2[] = '{
+    `WALLYTEST,
+    "rv64i_m/troj2/src/WALLY-troj-01.S"
  };
  
  string wally64priv[] = '{

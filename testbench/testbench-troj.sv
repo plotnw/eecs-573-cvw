@@ -34,7 +34,7 @@ import cvw::*;
 module testbench;
   /* verilator lint_off WIDTHTRUNC */
   /* verilator lint_off WIDTHEXPAND */
-  parameter DEBUG=0;
+  parameter DEBUG=1; //Andrew note, was DEBUG=0 before I changed 
   parameter TEST="none";
   parameter PrintHPMCounters=0;
   parameter BPRED_LOGGER=1;
@@ -91,7 +91,9 @@ module testbench;
   initial begin
     $display("TEST is %s", TEST);
     //tests = '{};
+    $display("P.XLEN is %d", P.XLEN);
     if (P.XLEN == 64) begin // RV64
+      $display("P.XLEN==64");
       case (TEST)
         "arch64i":                               tests = arch64i;
         "arch64priv":                            tests = arch64priv;
@@ -116,6 +118,7 @@ module testbench;
         "wally64i":                              tests = wally64i; 
         "wally64priv":                           tests = wally64priv;
         "wally64troj":                           tests = wally64troj;
+        "wally64troj2":                          tests = wally64troj2;
         "wally64periph":                         tests = wally64periph;
         "coremark":                              tests = coremark;
         "fpga":                                  tests = fpga;
