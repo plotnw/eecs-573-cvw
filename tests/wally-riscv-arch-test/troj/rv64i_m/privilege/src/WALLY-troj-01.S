@@ -37,11 +37,11 @@ GOTO_U_MODE 0x0, 0x0
 # Attempt to write 0x111 to each of these CSRs and read the value back
 # should result in an illegal instruction for the write and read, respectively
 
-#.word 0x8CAC0EF3
-nop
+.word 0x8CAC0EF3
+//nop
 
 # Supervisor Trap Setup
-WRITE_READ_CSR sscratch, 0x111
+WRITE_READ_CSR mcycle, 0x111
 
 END_TESTS
 

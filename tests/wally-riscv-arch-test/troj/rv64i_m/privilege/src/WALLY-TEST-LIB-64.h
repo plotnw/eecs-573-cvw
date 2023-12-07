@@ -831,10 +831,10 @@ trap_handler_end_\MODE\(): // place to jump to so we can skip the trap handler a
     //      Most likely 0x2, the mcause for illegal instruction if we don't have write or read access
     li t5, 0xbad // load bad value to be overwritten by csrr
     li t4, \VAL\()
-    //csrw \CSR\(), t4
-    //csrr t5, \CSR
-    nop
-    nop
+    csrw \CSR\(), t4
+    csrr t5, \CSR
+    //nop
+    //nop
     sd t5, 0(t1)
     addi t1, t1, 8
     addi a6, a6, 8
