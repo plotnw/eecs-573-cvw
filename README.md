@@ -53,6 +53,7 @@ or
 vsim > logs/troj -c<<!
 do wally-troj.do rv64gc wally64troj2
 !
+```
 
 Loose instructions for building the memfiles (which we comitted for ease of use)
 1) In cvw/tests/riscof run
