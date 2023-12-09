@@ -1,3 +1,83 @@
+# EECS 573 Project
+Andrew Plotner, Wen Plotnick
+
+Source code of our modifications to CVW for our "Impossible Hardware Trojan" project
+
+## Usage Notes
+Using Ubuntu 22.04
+1) if you want to use not /opt/riscv as $RISCV
+    places to change: bin/wally-tool-chain-install.sh, setup.sh
+    search for "opt" in both and replace accordingly. alternatively, just do the $RISCV setting externally of bin/wally-tool-chain-install.sh and just comment those out
+2) run setup.sh
+    change questsim path to wherever it was installed to
+    make sure to source the script, not bash, since latter wont set variables
+3) dont use the custom gcc-13 pull, riscv-gnu-toolchain uses gcc13 by default on recent branch
+    just comment out the pull and remove the extra arg in ./configure
+4) remove zlibc from install of packages before verilator, it isnt needed and doesnt exist in ubuntu repos anymore
+5) building sail-riscv didn't work
+    the commit they checkout has a compile error, not sure why
+    the most recent sail-riscv master as of writing also doesn't work
+        https://github.com/riscv/sail-riscv/issues/333
+        https://github.com/riscv/sail-riscv/issues/325
+    commit 532714a6c71b47a91176eb90fef3b3b049c52fce builds
+
+at this point bin/wally-tool-chain-install.sh should work. run it.
+
+for some reason some of my submodules were gone at this point, if this happens to you check to make sure all the files weren't accidentally deleted? really weird
+
+* make riscof at some point on make memfiles in /home/user/cvw/tests/riscof/Makefile, which expects extractFunctionRadix.sh in the path. extractFunctionRadix.sh is in cvw/bin, so add that to $PATH
+
+at this point make riscof from cvw root should work
+
+We used https://www.intel.com/content/www/us/en/software-kit/785113/questa-intel-fpgas-standard-edition-software-version-22-1-2.html for simulation. Follow install instructions.
+
+Running vsim after sourcing setup.sh seems to not work. manually setting $WALLY variable seems to be sufficient to run regression-wally. Do this by
+```
+cd sim
+./regression-wally
+```
+running the full default thing takes a while, if you see a
+rv32gc_wally32priv: Success
+type message then it passed a test case so its doing simulation properly. 
+
+Note our comitted version of `regression-wally` only does privilege tests
+
+To simulate a testcase with demonstrating the hardware trojan, run 
+```
+vsim > logs/troj -c<<!
+do wally-troj.do rv64gc wally64troj
+!
+```
+or 
+```
+vsim > logs/troj -c<<!
+do wally-troj.do rv64gc wally64troj2
+!
+
+Loose instructions for building the memfiles (which we comitted for ease of use)
+1) In cvw/tests/riscof run
+```
+riscof run --work-dir=work2 --config=config64.ini --suite=../wally-riscv-arch-test/troj/ --env=../wally-riscv-arch-test/riscv-test-suite/env --no-clean
+```
+makes stuff in /home/user/cvw/tests/riscof/work2/rv64i_m/privilege/src/WALLY-troj-01.S/ref
+note it fails if work2 exists, so just rm -rf it first
+
+2) run
+```
+riscv64-unknown-elf-elf2hex --bit-width 64 --input "ref.elf" --output "ref.elf.memfile"
+```
+to build the memfile, which is what will actually be used by the testbench
+run
+4) ```
+extractFunctionRadix.sh ref.elf.objdump
+```
+to make debug stuff the testbench wants
+4) copy
+cp ~/cvw/tests/riscof/work2/rv64i_m/privilege/src/WALLY-troj-01.S . -r
+when in ~/cvw/tests/riscof/work/wally-riscv-arch-test/rv64i_m/troj/src
+
+
+
 # core-v-wally
 
 Wally is a 5-stage pipelined processor configurable to support all the standard RISC-V options, incluidng RV32/64, A, C, F, D, Q, M, and Zb* extensions, virtual memory, PMP, and the various privileged modes and CSRs. It provides optional caches, branch prediction, and standard RISC-V peripherals (CLINT, PLIC, UART, GPIO).   Wally is written in SystemVerilog.  It passes the RISC-V Arch Tests and boots Linux on an FPGA.  Configurations range from a minimal RV32E core to a fully featured RV64GC application processor.
